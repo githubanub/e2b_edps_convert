@@ -25,7 +25,7 @@ def validate_file_type(uploaded_file) -> bool:
     try:
         # Check file extension
         filename = uploaded_file.name.lower()
-        allowed_extensions = ['.xml', '.zip']
+        allowed_extensions = ['.xml', '.sgm', '.zip']
         
         if not any(filename.endswith(ext) for ext in allowed_extensions):
             return False
@@ -35,7 +35,7 @@ def validate_file_type(uploaded_file) -> bool:
         uploaded_file.seek(0)  # Reset file pointer
         
         # Validate based on file type
-        if filename.endswith('.xml'):
+        if filename.endswith('.xml') or filename.endswith('.sgm'):
             return validate_xml_content(file_content)
         elif filename.endswith('.zip'):
             return validate_zip_content(file_content)

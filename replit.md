@@ -35,11 +35,13 @@ Architecture preference: Simplified AI-only approach with PII detection and user
 ## Key Components
 
 ### E2B Parser (`e2b_parser.py`)
-- **Purpose**: Parse E2B R3 XML files for pharmaceutical adverse event reports
+- **Purpose**: Parse E2B R3 XML and ICH ICSR v2.1 SGM files for pharmaceutical adverse event reports
 - **Key Features**:
+  - Dual format support (E2B R3 XML and ICH ICSR v2.1 SGM)
+  - Automatic format detection based on XML structure and version
   - Namespace-aware XML parsing
-  - Personal data element identification and extraction
-  - Required element validation
+  - Personal data element identification and extraction for both formats
+  - Required element validation appropriate to detected format
   - ICH ICSR message structure support
 
 ### AI PII Detector (`ai_pii_detector.py`)
@@ -54,13 +56,14 @@ Architecture preference: Simplified AI-only approach with PII detection and user
 
 ## Data Flow
 
-1. **Input**: User uploads E2B R3 XML files or ZIP archives
-2. **Validation**: File type and content validation using magic library
-3. **Parsing**: XML content extraction and structure validation
-4. **AI PII Detection**: Automatic identification of personal data fields using pattern matching
-5. **User Selection**: Interactive interface showing detected PII with confidence scores and priority levels
-6. **MSK Application**: Apply MSK null flavor to user-selected fields
-7. **Output**: Download masked XML files with personal data properly protected
+1. **Input**: User uploads E2B R3 XML files, ICH ICSR v2.1 SGM files, or ZIP archives
+2. **Format Detection**: Automatic detection of E2B R3 vs ICH ICSR v2.1 format based on XML structure
+3. **Validation**: File type and content validation using magic library
+4. **Parsing**: XML content extraction and structure validation appropriate to detected format
+5. **AI PII Detection**: Automatic identification of personal data fields using Azure OpenAI or pattern matching fallback
+6. **User Selection**: Interactive interface showing detected PII with confidence scores and priority levels
+7. **MSK Application**: Apply MSK null flavor to user-selected fields
+8. **Output**: Download masked XML/SGM files with personal data properly protected
 
 ## External Dependencies
 

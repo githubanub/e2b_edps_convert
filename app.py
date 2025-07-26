@@ -31,7 +31,7 @@ def main():
     """Main application interface"""
     st.title("🏥 E2B R3 to EDPS Converter")
     st.markdown("### Pharmaceutical Regulatory Compliance Tool")
-    st.markdown("*Convert E2B R3 XML files to EDPS compliant format according to GVP Module VI Addendum II*")
+    st.markdown("*Convert E2B R3 XML and ICH ICSR v2.1 files to EDPS compliant format according to GVP Module VI Addendum II*")
     
     # Initialize components
     parser, ai_detector = init_components()
@@ -40,7 +40,7 @@ def main():
     with st.sidebar:
         st.header("AI PII Detection")
         st.markdown("### About")
-        st.info("Upload E2B R3 XML files to automatically detect personal data fields using AI. Select which fields to mask with MSK null flavor.")
+        st.info("Upload E2B R3 XML or ICH ICSR SGM files to automatically detect personal data fields using AI. Select which fields to mask with MSK null flavor.")
         
         st.markdown("### System Status")
         # Check Azure AI status
@@ -53,7 +53,8 @@ def main():
         
         st.markdown("### Supported Files")
         st.markdown("- XML files (E2B R3 format)")
-        st.markdown("- ZIP archives with XML files")
+        st.markdown("- SGM files (ICH ICSR v2.1 format)")
+        st.markdown("- ZIP archives with XML/SGM files")
     
     # Main content
     file_upload_page(parser, ai_detector)
@@ -67,10 +68,10 @@ def file_upload_page(parser, ai_detector):
     
     with col1:
         uploaded_files = st.file_uploader(
-            "Upload E2B R3 XML Files or ZIP Archives",
-            type=['xml', 'zip'],
+            "Upload E2B R3 XML Files, ICH ICSR .sgm Files, or ZIP Archives",
+            type=['xml', 'sgm', 'zip'],
             accept_multiple_files=True,
-            help="Upload individual XML files or ZIP archives containing multiple E2B R3 files"
+            help="Upload individual XML/SGM files or ZIP archives containing multiple pharmaceutical reports"
         )
     
     with col2:

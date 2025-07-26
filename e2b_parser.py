@@ -10,7 +10,7 @@ except ImportError:
     HAS_LXML = False
 
 class E2BParser:
-    """E2B R3 XML parser for pharmaceutical adverse event reports"""
+    """E2B R3 XML and ICH ICSR parser for pharmaceutical adverse event reports"""
     
     def __init__(self):
         self.namespace_map = {
@@ -25,8 +25,16 @@ class E2BParser:
             'reaction'
         ]
         
+        # ICH ICSR v2.1 required elements (for .sgm files)
+        self.icsr_required_elements = [
+            'ichicsrmessageheader',
+            'safetyreport',
+            'patient'
+        ]
+        
         # Personal data elements that should have MSK null flavor
         self.personal_data_elements = {
+            # E2B R3 format
             'A.2.1.1': ['patient', 'patientinitial'],
             'A.2.1.4': ['patient', 'patientbirthdateformat'],
             'A.3.1.2': ['primarysource', 'reportergivename'],
@@ -39,6 +47,44 @@ class E2BParser:
             'A.3.1.9': ['primarysource', 'reportertelephone'],
             'A.3.1.10': ['primarysource', 'reporterfax'],
             'A.3.1.11': ['primarysource', 'reporteremailaddress'],
+        }
+        
+        # ICH ICSR v2.1 personal data elements (for .sgm files)
+        self.icsr_personal_data_elements = {
+            # Patient information
+            'patient_initials': ['patient', 'patientinitial'],
+            'patient_birthdate': ['patient', 'patientbirthdate'],
+            'patient_records': ['patient', 'patientgpmedicalrecordnumb'],
+            # Reporter information
+            'reporter_name': ['primarysource', 'reportergivename'],
+            'reporter_family': ['primarysource', 'reporterfamilyname'],
+            'reporter_middle': ['primarysource', 'reportermiddlename'],
+            'reporter_address': ['primarysource', 'reporterstreet'],
+            'reporter_city': ['primarysource', 'reportercity'],
+            'reporter_state': ['primarysource', 'reporterstate'],
+            'reporter_postcode': ['primarysource', 'reporterpostcode'],
+            # Sender information
+            'sender_name': ['sender', 'sendergivename'],
+            'sender_family': ['sender', 'senderfamilyname'],
+            'sender_middle': ['sender', 'sendermiddlename'],
+            'sender_address': ['sender', 'senderstreetaddress'],
+            'sender_city': ['sender', 'sendercity'],
+            'sender_state': ['sender', 'senderstate'],
+            'sender_postcode': ['sender', 'senderpostcode'],
+            'sender_tel': ['sender', 'sendertel'],
+            'sender_fax': ['sender', 'senderfax'],
+            'sender_email': ['sender', 'senderemailaddress'],
+            # Receiver information
+            'receiver_name': ['receiver', 'receivergivename'],
+            'receiver_family': ['receiver', 'receiverfamilyname'],
+            'receiver_middle': ['receiver', 'receivermiddlename'],
+            'receiver_address': ['receiver', 'receiverstreetaddress'],
+            'receiver_city': ['receiver', 'receivercity'],
+            'receiver_state': ['receiver', 'receiverstate'],
+            'receiver_postcode': ['receiver', 'receiverpostcode'],
+            'receiver_tel': ['receiver', 'receivertel'],
+            'receiver_fax': ['receiver', 'receiverfax'],
+            'receiver_email': ['receiver', 'receiveremailaddress'],
         }
         
         # Setup logging
@@ -56,7 +102,7 @@ class E2BParser:
     
     def parse_e2b_xml(self, xml_content: str) -> Dict[str, Any]:
         """
-        Parse E2B R3 XML content and extract relevant data
+        Parse E2B R3 XML or ICH ICSR content and extract relevant data
         
         Args:
             xml_content: Raw XML content as string
@@ -68,8 +114,14 @@ class E2BParser:
             # Parse XML
             root = ET.fromstring(xml_content)
             
-            # Validate basic structure
-            validation_result = self._validate_xml_structure(root)
+            # Detect format type
+            format_type = self._detect_format_type(root)
+            
+            # Validate basic structure based on format
+            if format_type == 'icsr':
+                validation_result = self._validate_icsr_structure(root)
+            else:
+                validation_result = self._validate_xml_structure(root)
             
             if not validation_result['valid']:
                 return {
@@ -85,13 +137,25 @@ class E2BParser:
             element_count = len(list(root.iter()))
             field_count = len(self._get_all_text_elements(root))
             
+            # Extract all elements for PII detection
+            all_elements = self._extract_all_elements(root)
+            
+            # Set personal data elements based on format
+            format_type = self._detect_format_type(root)
+            personal_data_map = self.icsr_personal_data_elements if format_type == 'icsr' else self.personal_data_elements
+            
             return {
                 'success': True,
-                'error': None,
-                'data': extracted_data,
-                'element_count': element_count,
-                'field_count': field_count,
-                'validation': validation_result
+                'format_type': format_type,
+                'data': {
+                    'header': extracted_data.get('message_header', {}),
+                    'safety_report': extracted_data.get('safety_report', {}),
+                    'validation': validation_result
+                },
+                'element_count': len(all_elements),
+                'field_count': len([elem for elem in all_elements if elem.get('text', '').strip()]),
+                'all_elements': all_elements,
+                'personal_data_elements': self._identify_personal_data_elements(all_elements, personal_data_map)
             }
             
         except ET.ParseError as e:
@@ -185,6 +249,124 @@ class E2BParser:
         
         return data
     
+    def _extract_all_elements(self, root: ET.Element) -> List[Dict[str, Any]]:
+        """Extract all elements with their properties for PII detection"""
+        elements = []
+        for elem in root.iter():
+            if elem.tag and elem.text and elem.text.strip():
+                elements.append({
+                    'tag': elem.tag,
+                    'text': elem.text.strip(),
+                    'path': self._get_element_path(elem),
+                    'xpath': self._get_xpath(root, elem),
+                    'has_msk_null_flavor': elem.get('nullFlavor') == 'MSK',
+                    'attributes': dict(elem.attrib) if elem.attrib else {}
+                })
+        return elements
+    
+    def _identify_personal_data_elements(self, all_elements: List[Dict[str, Any]], personal_data_map: Dict) -> List[Dict[str, Any]]:
+        """Identify which elements contain personal data based on mapping"""
+        personal_elements = []
+        
+        for element in all_elements:
+            # Check against known personal data patterns
+            is_personal = False
+            element_code = None
+            
+            for code, path_parts in personal_data_map.items():
+                if len(path_parts) >= 2:
+                    target_tag = path_parts[-1]
+                    if element['tag'] == target_tag:
+                        is_personal = True
+                        element_code = code
+                        break
+            
+            if is_personal:
+                personal_elements.append({
+                    'element_code': element_code,
+                    'element_name': element['tag'],
+                    'element_path': element['path'],
+                    'has_value': bool(element['text']),
+                    'has_msk_null_flavor': element['has_msk_null_flavor'],
+                    'current_value': element['text'],
+                    'xpath': element['xpath']
+                })
+        
+        return personal_elements
+    
+    def _detect_format_type(self, root: ET.Element) -> str:
+        """
+        Detect whether this is E2B R3 or ICH ICSR v2.1 format
+        
+        Args:
+            root: XML root element
+            
+        Returns:
+            Format type: 'e2b' or 'icsr'
+        """
+        # Check root element
+        if root.tag == 'ichicsr':
+            return 'icsr'
+        
+        # Check for ICH ICSR v2.1 specific elements
+        if root.find('.//messageformatversion') is not None:
+            version_elem = root.find('.//messageformatversion')
+            if version_elem is not None and version_elem.text and '2.1' in version_elem.text:
+                return 'icsr'
+        
+        # Default to E2B R3
+        return 'e2b'
+    
+    def _validate_icsr_structure(self, root: ET.Element) -> Dict[str, Any]:
+        """
+        Validate XML structure against ICH ICSR v2.1 requirements
+        
+        Args:
+            root: XML root element
+            
+        Returns:
+            Validation result dictionary
+        """
+        errors = []
+        warnings = []
+        
+        # Check root element
+        if root.tag != 'ichicsr':
+            errors.append("Root element should be 'ichicsr' for ICH ICSR v2.1 format")
+        
+        # Check for required elements
+        missing_elements = []
+        for element in self.icsr_required_elements:
+            if root.find(f".//{element}") is None:
+                missing_elements.append(element)
+        
+        if missing_elements:
+            errors.append(f"Missing required elements: {', '.join(missing_elements)}")
+        
+        # Check for message format version
+        version_elem = root.find('.//messageformatversion')
+        if version_elem is not None:
+            if version_elem.text != '2.1':
+                warnings.append(f"Expected version 2.1, found: {version_elem.text}")
+        else:
+            warnings.append("Message format version not found")
+        
+        # Check for safety report
+        safety_reports = root.findall('.//safetyreport')
+        if not safety_reports:
+            errors.append("No safety reports found")
+        elif len(safety_reports) > 1:
+            warnings.append(f"Multiple safety reports found: {len(safety_reports)}")
+        
+        return {
+            'valid': len(errors) == 0,
+            'errors': errors,
+            'warnings': warnings,
+            'required_elements_found': len(self.icsr_required_elements) - len(missing_elements),
+            'total_required_elements': len(self.icsr_required_elements),
+            'format_type': 'icsr'
+        }
+    
     def _extract_message_header(self, root: ET.Element) -> Dict[str, Any]:
         """Extract message header information"""
         header = {}
@@ -252,11 +434,16 @@ class E2BParser:
         
         return reactions
     
-    def _find_personal_data_elements(self, root: ET.Element) -> List[Dict[str, Any]]:
+    def _find_personal_data_elements(self, root: ET.Element, personal_data_map: Dict = None) -> List[Dict[str, Any]]:
         """Find elements containing personal data"""
         personal_elements = []
         
-        for element_code, path_parts in self.personal_data_elements.items():
+        # Use provided map or default based on format
+        if personal_data_map is None:
+            format_type = self._detect_format_type(root)
+            personal_data_map = self.icsr_personal_data_elements if format_type == 'icsr' else self.personal_data_elements
+        
+        for element_code, path_parts in personal_data_map.items():
             elements = self._find_elements_by_path(root, path_parts)
             for elem in elements:
                 personal_elements.append({
