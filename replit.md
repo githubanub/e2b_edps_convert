@@ -22,8 +22,8 @@ Architecture preference: Simplified AI-only approach with PII detection and user
 - **Core Components**:
   - `E2BParser`: XML parsing for E2B R3 pharmaceutical data
   - `AIPIIDetector`: AI-powered PII field detection with pattern matching and confidence scoring
-  - `AzureConfig`: Re-integrated for Azure OpenAI PII detection services
-- Removed: ComplianceValidator, ReportGenerator (per user request)
+  - `AzureConfig`: Simplified configuration management for Azure OpenAI only
+- Removed: ComplianceValidator, ReportGenerator, Azure Form Recognizer, Azure Text Analytics (per user request)
 
 ### Data Processing Pipeline
 1. **File Upload & Validation**: Multi-format support (XML/ZIP) with content validation
@@ -71,11 +71,12 @@ Architecture preference: Simplified AI-only approach with PII detection and user
 - **pandas**: Data manipulation
 - **python-magic**: File type detection
 
-### Azure AI Integration
-- **Azure OpenAI**: Advanced PII detection using GPT-4 for semantic analysis
-- **Intelligent Analysis**: Context-aware detection beyond simple pattern matching
-- **Fallback Support**: Automatic fallback to pattern matching if Azure AI unavailable
-- **Configuration**: Environment variable based setup for security
+### Simplified Azure Integration
+- **Azure OpenAI Only**: Single service integration for intelligent PII detection using GPT-4
+- **No Form Recognizer**: Removed unnecessary document OCR capabilities
+- **No Text Analytics**: Removed redundant text analysis services
+- **Smart Fallback**: Automatic pattern matching when Azure AI unavailable
+- **Minimal Configuration**: Only requires Azure OpenAI credentials
 
 ### Compliance Framework
 - **GVP Module VI Addendum II**: Regulatory compliance rules

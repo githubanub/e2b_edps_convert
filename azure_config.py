@@ -40,25 +40,6 @@ class AzureConfig:
                 "deployment_name": os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4-32k")
             },
             
-            # Azure Form Recognizer Configuration
-            "azure_form_recognizer": {
-                "endpoint": os.getenv("AZURE_FORM_RECOGNIZER_ENDPOINT"),
-                "api_key": os.getenv("AZURE_FORM_RECOGNIZER_KEY")
-            },
-            
-            # Azure AI Agent Configuration
-            "azure_ai_agent": {
-                "endpoint": os.getenv("AZURE_AI_AGENT_ENDPOINT"),
-                "api_key": os.getenv("AZURE_AI_AGENT_KEY"),
-                "agent_id": os.getenv("AZURE_AI_AGENT_ID")
-            },
-            
-            # Azure Text Analytics Configuration
-            "azure_text_analytics": {
-                "endpoint": os.getenv("AZURE_TEXT_ANALYTICS_ENDPOINT"),
-                "api_key": os.getenv("AZURE_TEXT_ANALYTICS_KEY")
-            },
-            
             # Azure Resource Configuration
             "azure_resource": {
                 "subscription_id": os.getenv("AZURE_SUBSCRIPTION_ID"),
@@ -87,25 +68,6 @@ class AzureConfig:
                     "api_key": st.secrets.get("azure", {}).get("AZURE_OPENAI_KEY"),
                     "api_version": st.secrets.get("azure", {}).get("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
                     "deployment_name": st.secrets.get("azure", {}).get("AZURE_OPENAI_DEPLOYMENT", "gpt-4-32k")
-                },
-                
-                # Azure Form Recognizer Configuration
-                "azure_form_recognizer": {
-                    "endpoint": st.secrets.get("azure", {}).get("AZURE_FORM_RECOGNIZER_ENDPOINT"),
-                    "api_key": st.secrets.get("azure", {}).get("AZURE_FORM_RECOGNIZER_KEY")
-                },
-                
-                # Azure AI Agent Configuration
-                "azure_ai_agent": {
-                    "endpoint": st.secrets.get("azure", {}).get("AZURE_AI_AGENT_ENDPOINT"),
-                    "api_key": st.secrets.get("azure", {}).get("AZURE_AI_AGENT_KEY"),
-                    "agent_id": st.secrets.get("azure", {}).get("AZURE_AI_AGENT_ID")
-                },
-                
-                # Azure Text Analytics Configuration
-                "azure_text_analytics": {
-                    "endpoint": st.secrets.get("azure", {}).get("AZURE_TEXT_ANALYTICS_ENDPOINT"),
-                    "api_key": st.secrets.get("azure", {}).get("AZURE_TEXT_ANALYTICS_KEY")
                 },
                 
                 # Azure Resource Configuration
@@ -139,19 +101,7 @@ class AzureConfig:
                 "api_version": "2024-02-15-preview",
                 "deployment_name": "gpt-4-32k"
             },
-            "azure_form_recognizer": {
-                "endpoint": None,
-                "api_key": None
-            },
-            "azure_ai_agent": {
-                "endpoint": None,
-                "api_key": None,
-                "agent_id": None
-            },
-            "azure_text_analytics": {
-                "endpoint": None,
-                "api_key": None
-            },
+
             "azure_resource": {
                 "subscription_id": None,
                 "resource_group": "e2b-converter-rg",
@@ -172,14 +122,6 @@ class AzureConfig:
     def get_azure_openai_config(self) -> Dict[str, Any]:
         """Get Azure OpenAI specific configuration"""
         return self.config.get("azure_openai", {})
-    
-    def get_azure_form_recognizer_config(self) -> Dict[str, Any]:
-        """Get Azure Form Recognizer specific configuration"""
-        return self.config.get("azure_form_recognizer", {})
-    
-    def get_azure_ai_agent_config(self) -> Dict[str, Any]:
-        """Get Azure AI Agent specific configuration"""
-        return self.config.get("azure_ai_agent", {})
     
     def get_app_config(self) -> Dict[str, Any]:
         """Get application specific configuration"""
@@ -207,19 +149,6 @@ class AzureConfig:
         if not openai_config.get("api_key"):
             validation_result["issues"].append("Azure OpenAI API key not configured")
             validation_result["valid"] = False
-        
-        # Check Form Recognizer configuration
-        form_config = self.get_azure_form_recognizer_config()
-        if not form_config.get("endpoint"):
-            validation_result["warnings"].append("Azure Form Recognizer endpoint not configured")
-        
-        if not form_config.get("api_key"):
-            validation_result["warnings"].append("Azure Form Recognizer API key not configured")
-        
-        # Check AI Agent configuration
-        agent_config = self.get_azure_ai_agent_config()
-        if not agent_config.get("endpoint"):
-            validation_result["warnings"].append("Azure AI Agent endpoint not configured")
         
         # Check application configuration
         app_config = self.get_app_config()

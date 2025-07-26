@@ -4,7 +4,8 @@ A Streamlit-based pharmaceutical regulatory compliance tool that uses AI to dete
 
 ## Features
 
-- 🤖 **Azure AI-Powered PII Detection**: Uses Azure OpenAI for intelligent PII analysis with semantic understanding and high-accuracy confidence scoring
+- 🤖 **Azure OpenAI Integration**: Uses GPT-4 for intelligent PII analysis with semantic understanding and high-accuracy confidence scoring
+- 🔄 **Smart Fallback**: Automatic fallback to pattern matching when Azure AI is unavailable
 - 🎯 **User-Controlled Masking**: Interactive interface for selecting which PII fields to mask
 - 📁 **Multi-Format Support**: Handles individual XML files and ZIP archives
 - 🔒 **MSK Null Flavor**: Applies regulatory-compliant masking to selected fields
@@ -40,9 +41,10 @@ A Streamlit-based pharmaceutical regulatory compliance tool that uses AI to dete
 ## Architecture
 
 - **Frontend**: Streamlit web application with interactive PII selection
-- **Backend**: Azure OpenAI for intelligent PII detection with fallback pattern matching
+- **AI Engine**: Azure OpenAI GPT-4 for semantic analysis of XML elements
+- **Fallback**: Pattern matching when Azure AI unavailable
 - **Processing**: E2B R3 XML parsing and MSK null flavor application
-- **AI Engine**: Uses Azure OpenAI GPT-4 for semantic analysis of XML elements
+- **Deployment**: Local development with optional cloud AI enhancement
 
 ## Compliance
 
