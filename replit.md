@@ -2,11 +2,12 @@
 
 ## Overview
 
-This is a pharmaceutical regulatory compliance tool built with Streamlit that converts E2B R3 XML files to EDPS compliant format according to GVP Module VI Addendum II. The application focuses on ensuring proper handling of personal data elements while maintaining regulatory compliance for pharmaceutical adverse event reporting.
+This is a pharmaceutical regulatory compliance tool built with Streamlit that uses AI to detect PII fields in E2B R3 XML files and allows users to selectively apply MSK null flavor masking. The application focuses on AI-powered PII detection with user control over which fields to mask for EDPS compliance.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Architecture preference: Simplified AI-only approach with PII detection and user selection for masking.
 
 ## System Architecture
 
@@ -17,18 +18,18 @@ Preferred communication style: Simple, everyday language.
 - **File Handling**: Supports XML and ZIP file uploads with validation
 
 ### Backend Architecture
-- **Modular Design**: Separated into distinct components for parsing, validation, and reporting
+- **Simplified AI-Driven Design**: Focused on AI-powered PII detection and user-controlled masking
 - **Core Components**:
   - `E2BParser`: XML parsing for E2B R3 pharmaceutical data
-  - `ComplianceValidator`: EDPS compliance validation against GVP Module VI rules
-  - `ReportGenerator`: PDF report generation using ReportLab
-  - `AzureConfig`: Cloud configuration management
+  - `AIPIIDetector`: AI-powered PII field detection with pattern matching and confidence scoring
+  - Removed: ComplianceValidator, ReportGenerator, AzureConfig (per user request)
 
 ### Data Processing Pipeline
 1. **File Upload & Validation**: Multi-format support (XML/ZIP) with content validation
-2. **XML Parsing**: Extract structured data from E2B R3 format
-3. **Compliance Validation**: Check against EDPS requirements and personal data masking rules
-4. **Report Generation**: Create detailed compliance reports in PDF format
+2. **XML Parsing**: Extract structured data from E2B R3 format  
+3. **AI PII Detection**: Automatically identify personal data fields using pattern matching and element analysis
+4. **User Selection**: Interactive interface for users to choose which PII fields to mask
+5. **MSK Application**: Apply MSK null flavor to selected fields and generate masked XML output
 
 ## Key Components
 
@@ -40,39 +41,25 @@ Preferred communication style: Simple, everyday language.
   - Required element validation
   - ICH ICSR message structure support
 
-### Compliance Validator (`compliance_validator.py`)
-- **Purpose**: Validate EDPS compliance according to GVP Module VI Addendum II
+### AI PII Detector (`ai_pii_detector.py`)
+- **Purpose**: AI-powered detection of personally identifiable information in E2B R3 XML files
 - **Key Features**:
-  - Personal data masking validation (MSK null flavor requirements)
-  - Weighted compliance scoring system
-  - Threshold-based compliance categorization (excellent/good/acceptable/poor)
-  - Statistics tracking and storage
-
-### Report Generator (`report_generator.py`)
-- **Purpose**: Generate professional compliance reports
-- **Key Features**:
-  - PDF generation using ReportLab
-  - Custom styling and formatting
-  - Color-coded compliance indicators
-  - Detailed validation results presentation
-
-### Azure Configuration (`azure_config.py`)
-- **Purpose**: Manage cloud deployment and local development configurations
-- **Key Features**:
-  - Automatic Azure deployment detection
-  - Environment variable management
-  - Fallback configuration support
-  - Azure OpenAI and Form Recognizer integration
+  - Pattern-based PII recognition using regex and element mapping
+  - Confidence scoring for detected PII fields
+  - Priority classification (high/medium/low) based on data sensitivity
+  - Interactive user selection interface for masking decisions
+  - MSK null flavor application to selected fields
+  - Support for known E2B R3 personal data elements and AI detection of unknown PII
 
 ## Data Flow
 
 1. **Input**: User uploads E2B R3 XML files or ZIP archives
 2. **Validation**: File type and content validation using magic library
 3. **Parsing**: XML content extraction and structure validation
-4. **Compliance Check**: Personal data element validation against EDPS rules
-5. **Scoring**: Weighted compliance score calculation
-6. **Reporting**: PDF report generation with detailed findings
-7. **Audit**: Activity logging for compliance tracking
+4. **AI PII Detection**: Automatic identification of personal data fields using pattern matching
+5. **User Selection**: Interactive interface showing detected PII with confidence scores and priority levels
+6. **MSK Application**: Apply MSK null flavor to user-selected fields
+7. **Output**: Download masked XML files with personal data properly protected
 
 ## External Dependencies
 
@@ -83,11 +70,10 @@ Preferred communication style: Simple, everyday language.
 - **pandas**: Data manipulation
 - **python-magic**: File type detection
 
-### Azure Integration
-- **Azure OpenAI**: AI-powered analysis capabilities
-- **Azure Form Recognizer**: Document processing
-- **Azure AI Studio**: Machine learning workspace
-- **Azure App Service**: Web application hosting
+### Removed Azure Integration
+- Removed all Azure service dependencies per user request
+- Now uses local AI pattern matching instead of cloud-based AI services
+- Simplified architecture focusing only on the core PII detection functionality
 
 ### Compliance Framework
 - **GVP Module VI Addendum II**: Regulatory compliance rules
@@ -96,22 +82,10 @@ Preferred communication style: Simple, everyday language.
 
 ## Deployment Strategy
 
-### Local Development
-- Configuration loaded from environment variables or defaults
-- File-based statistics storage
-- Local Streamlit server deployment
+### Local Development Only
+- Simplified local-only deployment
+- No cloud dependencies or configurations required
+- Local Streamlit server deployment with built-in AI pattern matching
+- File-based session management for masked XML storage
 
-### Azure Cloud Deployment
-- **Detection**: Automatic Azure environment detection via `WEBSITE_SITE_NAME`
-- **Configuration**: Azure App Service environment variables
-- **Scaling**: Azure App Service Plan with horizontal scaling
-- **Security**: Azure Key Vault for sensitive configuration
-- **Monitoring**: Azure Application Insights integration
-
-### Infrastructure Components
-- **Azure OpenAI Service**: GPT-4 model deployment for AI analysis
-- **Azure Form Recognizer**: Document intelligence capabilities
-- **Azure App Service**: Streamlit application hosting
-- **Azure AI Studio**: ML workspace for advanced analytics
-
-The application is designed to handle both development and production environments seamlessly, with automatic configuration switching based on the deployment context.
+The application now runs entirely locally without any external service dependencies, making it simpler to deploy and maintain while focusing on the core PII detection and masking functionality.
