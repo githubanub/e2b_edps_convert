@@ -3,12 +3,23 @@ import xml.etree.ElementTree as ET
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 import logging
+import os
+import json
+from openai import AzureOpenAI
 
 class AIPIIDetector:
-    """AI-powered PII detector for E2B R3 XML files"""
+    """Azure AI-powered PII detector for E2B R3 XML files"""
     
     def __init__(self):
-        # Known PII patterns and field mappings
+        # Setup logging first
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+        
+        # Initialize Azure OpenAI client
+        self.azure_client = None
+        self._init_azure_client()
+        
+        # Known PII patterns and field mappings (fallback)
         self.pii_patterns = {
             'patient_initials': {
                 'pattern': r'^[A-Z]{1,3}$',
@@ -74,14 +85,32 @@ class AIPIIDetector:
             'reporterfax': {'type': 'phone_number', 'priority': 'medium'},
             'reporteremailaddress': {'type': 'email_address', 'priority': 'high'},
         }
-        
-        # Setup logging
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
+    
+    def _init_azure_client(self):
+        """Initialize Azure OpenAI client"""
+        try:
+            api_key = os.getenv('AZURE_OPENAI_API_KEY')
+            endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
+            api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2023-12-01-preview')
+            
+            if api_key and endpoint:
+                self.azure_client = AzureOpenAI(
+                    api_key=api_key,
+                    azure_endpoint=endpoint,
+                    api_version=api_version
+                )
+                self.deployment_name = os.getenv('AZURE_OPENAI_DEPLOYMENT_NAME', 'gpt-4')
+                self.logger.info("Azure OpenAI client initialized successfully")
+            else:
+                self.logger.warning("Azure OpenAI credentials not found, using fallback pattern matching")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to initialize Azure OpenAI client: {str(e)}")
+            self.azure_client = None
     
     def detect_pii_fields(self, parsed_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Detect PII fields in parsed E2B R3 data using AI pattern matching
+        Detect PII fields in parsed E2B R3 data using Azure AI
         
         Args:
             parsed_data: Parsed XML data from E2BParser
@@ -105,8 +134,11 @@ class AIPIIDetector:
                 # Check if element is already marked with MSK
                 has_msk = element.get('null_flavor') == 'MSK'
                 
-                # Detect PII based on element name and content
-                pii_detection = self._analyze_element_for_pii(element_tag, element_text)
+                # Use Azure AI for PII detection if available, otherwise fallback
+                if self.azure_client:
+                    pii_detection = self._azure_analyze_element_for_pii(element_tag, element_text)
+                else:
+                    pii_detection = self._analyze_element_for_pii(element_tag, element_text)
                 
                 if pii_detection:
                     detected_pii.append({
@@ -120,7 +152,8 @@ class AIPIIDetector:
                         'has_msk_applied': has_msk,
                         'recommendation': 'Apply MSK null flavor' if not has_msk else 'MSK already applied',
                         'element_code': pii_detection.get('element_code', 'Unknown'),
-                        'selected_for_masking': not has_msk  # Default selection
+                        'selected_for_masking': not has_msk,  # Default selection
+                        'detection_method': 'Azure AI' if self.azure_client else 'Pattern Matching'
                     })
             
             # Sort by priority and confidence
@@ -187,6 +220,83 @@ class AIPIIDetector:
             }
         
         return None
+    
+    def _azure_analyze_element_for_pii(self, element_tag: str, element_text: str) -> Optional[Dict[str, Any]]:
+        """Analyze individual element for PII content using Azure OpenAI"""
+        
+        try:
+            # Create prompt for Azure OpenAI
+            prompt = f"""
+            You are an expert in pharmaceutical regulatory compliance and personal data protection for E2B R3 XML files.
+            
+            Analyze the following XML element to determine if it contains personally identifiable information (PII):
+            
+            Element Tag: {element_tag}
+            Element Content: {element_text}
+            
+            Context: This is from an E2B R3 pharmaceutical adverse event report that needs to comply with EDPS guidelines and GVP Module VI Addendum II.
+            
+            Please analyze and respond with a JSON object containing:
+            {{
+                "is_pii": true/false,
+                "pii_type": "patient_initials|person_name|email_address|phone_number|address|date_of_birth|postal_code|city_name|generic_personal_data",
+                "description": "Brief description of the PII type",
+                "priority": "high|medium|low",
+                "confidence": 0.0-1.0,
+                "reasoning": "Brief explanation of why this is/isn't PII",
+                "element_code": "E2B element code if known"
+            }}
+            
+            Priority guidelines:
+            - High: Patient identifiers, names, contact details, dates of birth
+            - Medium: Addresses, phone numbers, postal codes
+            - Low: City names, generic location data
+            
+            Only respond with valid JSON.
+            """
+            
+            response = self.azure_client.chat.completions.create(
+                model=self.deployment_name,
+                messages=[
+                    {"role": "system", "content": "You are an expert AI assistant specializing in pharmaceutical regulatory compliance and PII detection for E2B R3 XML files."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,  # Low temperature for consistent results
+                max_tokens=500
+            )
+            
+            # Parse Azure AI response
+            ai_response = response.choices[0].message.content.strip()
+            
+            # Clean response to extract JSON
+            if '```json' in ai_response:
+                ai_response = ai_response.split('```json')[1].split('```')[0].strip()
+            elif '```' in ai_response:
+                ai_response = ai_response.split('```')[1].strip()
+            
+            analysis = json.loads(ai_response)
+            
+            if analysis.get('is_pii', False):
+                return {
+                    'type': analysis.get('pii_type', 'generic_personal_data'),
+                    'description': f"{analysis.get('description', 'Personal data')} (Azure AI detected)",
+                    'priority': analysis.get('priority', 'medium'),
+                    'confidence': float(analysis.get('confidence', 0.8)),
+                    'element_code': analysis.get('element_code', 'AI-Detected'),
+                    'reasoning': analysis.get('reasoning', 'Detected by Azure AI')
+                }
+            
+            return None
+            
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse Azure AI response as JSON: {str(e)}")
+            # Fallback to pattern matching
+            return self._analyze_element_for_pii(element_tag, element_text)
+            
+        except Exception as e:
+            self.logger.error(f"Azure AI analysis error: {str(e)}")
+            # Fallback to pattern matching
+            return self._analyze_element_for_pii(element_tag, element_text)
     
     def apply_msk_masking(self, xml_content: str, selected_fields: List[Dict[str, Any]]) -> str:
         """

@@ -43,7 +43,13 @@ def main():
         st.info("Upload E2B R3 XML files to automatically detect personal data fields using AI. Select which fields to mask with MSK null flavor.")
         
         st.markdown("### System Status")
-        st.success("✅ AI PII Detector Ready")
+        # Check Azure AI status
+        if ai_detector.azure_client:
+            st.success("✅ Azure AI Connected")
+            st.caption("Using Azure OpenAI for advanced PII detection")
+        else:
+            st.warning("⚠️ Pattern Matching Mode")
+            st.caption("Azure AI not configured - using fallback detection")
         
         st.markdown("### Supported Files")
         st.markdown("- XML files (E2B R3 format)")
@@ -172,7 +178,8 @@ def process_single_file_with_ai(uploaded_file, parser, ai_detector):
         
         with col3:
             st.write(f"*{field['element_text'][:30]}...*" if len(field['element_text']) > 30 else f"*{field['element_text']}*")
-            st.caption(f"Confidence: {field['confidence']:.1%}")
+            detection_method = field.get('detection_method', 'Pattern Matching')
+            st.caption(f"Confidence: {field['confidence']:.1%} ({detection_method})")
         
         with col4:
             if field['has_msk_applied']:

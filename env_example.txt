@@ -1,0 +1,14 @@
+# Azure OpenAI Configuration
+# Add these to your Replit Secrets tab:
+
+AZURE_OPENAI_API_KEY=your_azure_openai_api_key_here
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+AZURE_OPENAI_API_VERSION=2023-12-01-preview
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
+
+# Instructions:
+# 1. Go to your Replit project
+# 2. Click on "Tools" > "Secrets"
+# 3. Add each variable above with your actual Azure values
+# 4. The AI PII detector will automatically use Azure AI when configured
+# 5. Without these secrets, it will fall back to pattern matching

@@ -4,7 +4,7 @@ A Streamlit-based pharmaceutical regulatory compliance tool that uses AI to dete
 
 ## Features
 
-- 🤖 **AI-Powered PII Detection**: Automatically identifies personal data fields using pattern matching and confidence scoring
+- 🤖 **Azure AI-Powered PII Detection**: Uses Azure OpenAI for intelligent PII analysis with semantic understanding and high-accuracy confidence scoring
 - 🎯 **User-Controlled Masking**: Interactive interface for selecting which PII fields to mask
 - 📁 **Multi-Format Support**: Handles individual XML files and ZIP archives
 - 🔒 **MSK Null Flavor**: Applies regulatory-compliant masking to selected fields
@@ -14,10 +14,19 @@ A Streamlit-based pharmaceutical regulatory compliance tool that uses AI to dete
 
 1. **Install Dependencies**
    ```bash
-   pip install streamlit lxml pandas python-magic reportlab
+   pip install streamlit lxml pandas python-magic reportlab openai python-dotenv
    ```
 
-2. **Run the Application**
+2. **Configure Azure OpenAI** (Optional - will use pattern matching fallback if not configured)
+   ```bash
+   # Add to Replit Secrets or environment variables:
+   AZURE_OPENAI_API_KEY=your_api_key
+   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+   AZURE_OPENAI_API_VERSION=2023-12-01-preview
+   AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
+   ```
+
+3. **Run the Application**
    ```bash
    streamlit run app.py --server.port 5000
    ```
@@ -31,8 +40,9 @@ A Streamlit-based pharmaceutical regulatory compliance tool that uses AI to dete
 ## Architecture
 
 - **Frontend**: Streamlit web application with interactive PII selection
-- **Backend**: AI pattern matching engine for PII detection
+- **Backend**: Azure OpenAI for intelligent PII detection with fallback pattern matching
 - **Processing**: E2B R3 XML parsing and MSK null flavor application
+- **AI Engine**: Uses Azure OpenAI GPT-4 for semantic analysis of XML elements
 
 ## Compliance
 

@@ -22,7 +22,8 @@ Architecture preference: Simplified AI-only approach with PII detection and user
 - **Core Components**:
   - `E2BParser`: XML parsing for E2B R3 pharmaceutical data
   - `AIPIIDetector`: AI-powered PII field detection with pattern matching and confidence scoring
-  - Removed: ComplianceValidator, ReportGenerator, AzureConfig (per user request)
+  - `AzureConfig`: Re-integrated for Azure OpenAI PII detection services
+- Removed: ComplianceValidator, ReportGenerator (per user request)
 
 ### Data Processing Pipeline
 1. **File Upload & Validation**: Multi-format support (XML/ZIP) with content validation
@@ -70,10 +71,11 @@ Architecture preference: Simplified AI-only approach with PII detection and user
 - **pandas**: Data manipulation
 - **python-magic**: File type detection
 
-### Removed Azure Integration
-- Removed all Azure service dependencies per user request
-- Now uses local AI pattern matching instead of cloud-based AI services
-- Simplified architecture focusing only on the core PII detection functionality
+### Azure AI Integration
+- **Azure OpenAI**: Advanced PII detection using GPT-4 for semantic analysis
+- **Intelligent Analysis**: Context-aware detection beyond simple pattern matching
+- **Fallback Support**: Automatic fallback to pattern matching if Azure AI unavailable
+- **Configuration**: Environment variable based setup for security
 
 ### Compliance Framework
 - **GVP Module VI Addendum II**: Regulatory compliance rules
@@ -82,10 +84,10 @@ Architecture preference: Simplified AI-only approach with PII detection and user
 
 ## Deployment Strategy
 
-### Local Development Only
-- Simplified local-only deployment
-- No cloud dependencies or configurations required
-- Local Streamlit server deployment with built-in AI pattern matching
-- File-based session management for masked XML storage
+### Hybrid Deployment Strategy
+- **Local Development**: Runs locally with optional Azure AI integration
+- **Azure AI Enhanced**: Uses Azure OpenAI for superior PII detection when configured
+- **Graceful Fallback**: Automatically uses pattern matching if Azure services unavailable
+- **Flexible Configuration**: Environment variables for easy setup
 
-The application now runs entirely locally without any external service dependencies, making it simpler to deploy and maintain while focusing on the core PII detection and masking functionality.
+The application now supports both local pattern matching and cloud-enhanced Azure AI analysis, providing the best of both worlds - local deployment simplicity with optional cloud intelligence for superior PII detection accuracy.
